@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: Agentic Order API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+    description: Production Server
+paths:
+  /orders:
+    post:
+      operationId: submitNewCustomerOrder
+      summary: Submit a new distinct customer order for processing.
+      description: >
+        Initiates the fulfillment process for a new order. 
+        Use this tool ONLY when the user explicitly confirms the cart items.
+        This tool does NOT process refunds or modifications.
+        Execution will immediately reserve inventory and trigger a warehouse pick-list.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - orderType
+                - items
+              properties:
+                orderType:
+                  type: string
+                  enum: 
+                    - standard_ground
+                    - expedited_air
+                    - digital_download
+                items:
+                  type: array
+                  items:
+                    type: string
+                  example: ["SKU-123", "SKU-999"]
+                urgent:
+                  type: boolean
+                  description: Deprecated. Use orderType 'expedited_air' instead.
+      responses:
+        '400':
+          description: Agent-Optimized Error Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "ArgumentValidationError"
+                  message:
+                    type: string
+                    example: "The item 'SKU-999' is currently out of stock."
+                  hint:
+                    type: string
+                    description: Actionable advice for the agent to self-correct.
+                    example: "Received 'SKU-999'. Available substitutes are ['SKU-998', 'SKU-997']. Please confirm with user and retry."
+                  required_schema:
+                    type: object
+                    description: Reminds the agent of the correct format if a schema violation occurred.

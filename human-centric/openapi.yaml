@@ -1,0 +1,27 @@
+openapi: 3.0.0
+info:
+  title: Legacy Order API
+  version: 1.0.0
+paths:
+  /orders:
+    post:
+      operationId: post_orders
+      summary: Create Order
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: The type of order
+                items:
+                  type: array
+                  items:
+                    type: string
+                urgent:
+                  type: boolean
+      responses:
+        '400':
+          description: Bad Request
