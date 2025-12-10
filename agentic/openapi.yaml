@@ -3,7 +3,7 @@ info:
   title: Agentic Order API
   version: 1.0.0
 servers:
-  - url: https://api.example.com/v1
+  - url: https://httpbin.org/get
     description: Production Server
 paths:
   /orders:
