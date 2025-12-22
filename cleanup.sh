@@ -16,67 +16,21 @@ if [[ -z "${PROJECT_ID}" ]]; then
   exit 1
 fi
 
-if [[ -z "${APIGEE_ORG}" ]]; then
-  echo "Error: APIGEE_ORG is not set."
-  exit 1
-fi
-
-if [[ -z "${APIGEE_ENV}" ]]; then
-  echo "Error: APIGEE_ENV is not set."
-  exit 1
-fi
 
 if [[ -z "${API_HUB_REGION}" ]]; then
   echo "Error: API_HUB_REGION is not set."
   exit 1
 fi
 
-PROXY_NAME="${PROXY_NAME:-"agentic-order-api"}"
-API_ID="${API_ID:-"agentic-order-api"}"
-
 echo "Authenticating..."
 TOKEN="$(gcloud auth print-access-token)"
 
-# Ensure apigeecli is installed
+# Ensure apigeecli is installed (still needed for API Hub)
 if ! command -v apigeecli &> /dev/null; then
     echo "Installing apigeecli..."
     curl -s https://raw.githubusercontent.com/apigee/apigeecli/main/downloadLatest.sh | bash
     export PATH="${PATH}:${HOME}/.apigeecli/bin"
 fi
-
-delete_api_proxy() {
-  local api_name="$1"
-  echo "Checking deployments for ${api_name} in ${APIGEE_ENV}..."
-  
-  # Get the deployed revision
-  REV="$(apigeecli envs deployments get \
-    --env "${APIGEE_ENV}" \
-    --org "${APIGEE_ORG}" \
-    --token "${TOKEN}" \
-    --disable-check \
-    | jq -r ".deployments[] | select(.apiProxy==\"${api_name}\") | .revision" 2>/dev/null || true)"
-  
-  if [[ -n "${REV}" ]] && [[ "${REV}" != "null" ]]; then
-    echo "Undeploying revision ${REV} of ${api_name}..."
-    apigeecli apis undeploy \
-      --name "${api_name}" \
-      --env "${APIGEE_ENV}" \
-      --rev "${REV}" \
-      --org "${APIGEE_ORG}" \
-      --token "${TOKEN}"
-  else
-    echo "No active deployment found for ${api_name}."
-  fi
-
-  echo "Deleting proxy ${api_name}..."
-  # Delete the proxy (all revisions)
-  if ! apigeecli apis delete \
-      --name "${api_name}" \
-      --org "${APIGEE_ORG}" \
-      --token "${TOKEN}"; then
-      echo "Proxy ${api_name} might already be deleted."
-  fi
-}
 
 delete_api_from_hub() {
   local api_id="$1"
@@ -91,14 +45,10 @@ delete_api_from_hub() {
   fi
 }
 
-echo "================================================="
 echo "Starting Cleanup"
 echo "================================================="
 
-# 1. Delete from Apigee
-delete_api_proxy "${PROXY_NAME}"
-
-# 2. Delete from API Hub
+# 1. Delete from API Hub
 delete_api_from_hub "${API_ID}"
 
 echo "================================================="

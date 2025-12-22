@@ -1,10 +1,31 @@
 steps:
-  # 1. Lint with Spectral
-  - name: 'stoplight/spectral:latest'
-    args: ['lint', '${_SPEC_FILE}', '-r', 'linters/agentic.yaml']
+  # 1. Ensure Attribute Exists
+  - id: '✨ Ensure Attribute'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    entrypoint: 'bash'
+    args: ['ensure_attribute.sh']
+    env:
+      - '_PROJECT_ID=${_PROJECT_ID}'
+      - '_API_HUB_REGION=${_API_HUB_REGION}'
 
-  # 2. Register in API Hub
-  - name: 'ghcr.io/apigee/apigeecli:latest'
+  # 2. Lint with Spectral (Output to JSON, allow failure)
+  - id: '🧐 Agentic Lint'
+    name: 'stoplight/spectral:latest'
+    entrypoint: '/bin/sh'
+    args:
+      - '-c'
+      - |
+        spectral lint ${_SPEC_FILE} -r linters/agentic.yaml -f json -o spectral_output.json || echo "Spectral linting finished (exit code $?)"
+
+  # 3. Classify Spec Readiness
+  - id: '🧠 Classify Spec'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    entrypoint: 'bash'
+    args: ['classify_spec.sh']
+
+  # 4. Register in API Hub
+  - id: '📦 Register API'
+    name: 'ghcr.io/apigee/apigeecli:latest'
     entrypoint: 'sh'
     args:
       - -c
@@ -52,29 +73,20 @@ steps:
         # Upload Spec (ignore failure if exists)
         apigeecli apihub apis versions specs create --api-id ${_API_ID} -v ${_VERSION} -i ${_SPEC_ID} -f ${_SPEC_FILE} -d "${_SPEC_ID}" -r ${_API_HUB_REGION} -o ${_PROJECT_ID} --default-token || echo "Spec ${_SPEC_ID} might already exist, continuing..."
 
-  # 3. Deploy Proxy to Apigee
-  - name: 'ghcr.io/apigee/apigeecli:latest'
-    entrypoint: 'sh'
-    args:
-      - -c
-      - |
-        echo "Deploying to Apigee..."
-        # Copy spec to /tmp to avoid permission issues
-        cp ${_SPEC_FILE} /tmp/openapi.yaml
-        cd /tmp
-        
-        # Create Proxy from Spec and Deploy
-        apigeecli apis create openapi -n ${_PROXY_NAME} \
-          --oas-base-folderpath . \
-          --oas-name openapi.yaml \
-          -o ${_APIGEE_ORG} --env ${_APIGEE_ENV} --wait --default-token
+  # 5. Assign Agentic Readiness Attribute
+  - id: '🏷️ Assign Readiness'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    entrypoint: 'bash'
+    args: ['assign_attribute.sh']
+    env:
+      - '_PROJECT_ID=${_PROJECT_ID}'
+      - '_API_HUB_REGION=${_API_HUB_REGION}'
+      - '_API_ID=${_API_ID}'
+      - '_VERSION=${_VERSION}'
+
 
 substitutions:
   _PROJECT_ID: "your-project-id"
-  _APIGEE_ORG: "your-org"
-  _APIGEE_ENV: "your-env"
-  _API_HUB_REGION: "us-central1"
-  _PROXY_NAME: "agentic-order-api"
   _API_ID: "agentic-order-api"
   _DISPLAY_NAME: "Agentic Order API"
   _VERSION: "v1-0-0"

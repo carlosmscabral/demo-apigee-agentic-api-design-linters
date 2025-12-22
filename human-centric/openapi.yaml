@@ -2,6 +2,9 @@ openapi: 3.0.0
 info:
   title: Legacy Order API
   version: 1.0.0
+servers:
+  - url: https://httpbin.org/get
+    description: Production Server
 paths:
   /orders:
     post:

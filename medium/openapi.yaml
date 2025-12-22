@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Agentic Order API
+  title: Agentic Order API (Medium Readiness)
   version: 1.0.0
 servers:
   - url: https://httpbin.org/get
@@ -21,9 +21,7 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required:
-                - orderType
-                - items
+              # VIOLATION: agent-explicit-requirements (Missing required array)
               properties:
                 orderType:
                   type: string
@@ -35,7 +33,7 @@ paths:
                   type: array
                   items:
                     type: string
-                  example: ["SKU-123", "SKU-999"]
+                  # VIOLATION: agent-examples-mandatory (Missing example)
                 urgent:
                   type: boolean
                   description: Deprecated. Use orderType 'expedited_air' instead.
@@ -53,10 +51,4 @@ paths:
                   message:
                     type: string
                     example: "The item 'SKU-999' is currently out of stock."
-                  hint:
-                    type: string
-                    description: Actionable advice on how to fix the error. READ THIS to self-correct and plan your next attempt.
-                    example: "Received 'SKU-999'. Available substitutes are ['SKU-998', 'SKU-997']. Please confirm with user and retry."
-                  required_schema:
-                    type: object
-                    description: The correct schema usage that you must adhere to. Compare your failed request against this schema to identify the violation.
+                  # VIOLATION: agent-error-hints (Missing hint)
